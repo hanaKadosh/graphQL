@@ -1,100 +1,93 @@
-const express = require('express')
-const { buildSchema } = require('graphql')
-const { graphqlHTTP } = require('express-graphql')
-const axios = require('axios')
+const express = require("express");
+const { buildSchema } = require("graphql");
+const { graphqlHTTP } = require("express-graphql");
+var sql = require("mssql/msnodesqlv8");
+const axios = require("axios");
 
 const app = express();
 
-let message = "this is a message";
-
 const schema = buildSchema(`
-    type Post {
-        id:Int
-        title:String
-        description:String
-    }
 
+    type Post {
+        userId: Int
+        id: Int
+        title: String
+        body: String
+    }
+    
     type User {
-        name:String
-        age:Int
-        college:String
+        name: String
+        age: Int
+        college: String
     }
 
     type Query {
-        hello:String!
-        welcomeMessage(name: String, dayOfweek: String!): String
-        getUser:User
-        getUsers:[User]
-        getPostsFromExternalAPI:[Post]
-        message:String
+        hello: String!
+        welcomeMessage(name: String, dayOfWeek: String!): String
+        getUser: User
+        getUsers: [User]
+        getPostsFromExternalAPI: [Post]
     }
 
-    input UserInput {
-        name:String!
-        age:Int!
-        college:String!
+`);
+
+var data = "";
+
+var config = {
+  connectionString:
+    "Driver=SQL Server;Server=OR-PC\\SQLEXPRESS02;Database=Users;Trusted_Connection=true;",
+};
+sql.connect(config, (err) => {
+  new sql.Request().query("SELECT * from Users", (err, result) => {
+    console.log(".:The Good Place:.");
+    if (err) {
+      // SQL error, but connection OK.
+      console.log("  Shirtballs: " + err);
+    } else {
+      // All is rosey in your garden.
+      data = result;
+      console.log(data.recordset);
     }
+  });
+});
+sql.on("error", (err) => {
+  // Connection borked.
+  console.log(".:The Bad Place:.");
+  console.log("  Fork: " + err);
+});
 
-    type Mutation {
-        setMessage(newMessage:String):String
-        createUser(user: UserInput): User
-    }
-`)
+var root = {
+  hello: () => {
+    return "Hello World";
+  },
+  welcomeMessage: (args) => {
+    return `Hey ${args.name}, today is ${args.dayOfWeek}`;
+  },
+  getUser: () => {
+    const user = {
+      name: "Ros Bros",
+      age: 25,
+      college: "Rafik",
+    };
+    return user;
+  },
+  getUsers: () => {
+    return data.recordset;
+  },
+  getPostsFromExternalAPI: () => {
+    return axios
+      .get("https://jsonplaceholder.typicode.com/posts")
+      .then((result) => result.data);
+  },
+};
 
-const root = {
-    hello: () => {
-        return "hello world!";
-    },
-    welcomeMessage: (args) => {
-        console.log(args);
-        return `Hello ${args.name}, hows life, today is ${args.dayOfweek}`;
-    },
-    getUser: () => {
-        const user = {
-            name: "ofir",
-            age: "32",
-            college: "ness",
-        }
-
-        return user;
-    },
-    getUsers: () => {
-        const users = [{
-            name: "ofir",
-            age: "32",
-            college: "ness",
-        },
-        {
-            name: "dan",
-            age: "30",
-            college: "ruppin",
-        }]
-
-        return users;
-    },
-    getPostsFromExternalAPI: async () => {
-        let result = await axios.get('https://dummyjson.com/products/');
-        return result.data.products;
-    },
-    setMessage: ({ newMessage }) => {
-        message = newMessage;
-        return message
-    },
-    message: () => message,
-    createUser: (args) => {
-        console.log(args)
-        return args.user;
-    }
-}
-
-app.use('/graphql',
-    graphqlHTTP({
-        graphiql: true,
-        schema: schema,
-        rootValue: root,
-    })
+app.use(
+  "/graphql",
+  graphqlHTTP({
+    graphiql: true,
+    schema: schema,
+    rootValue: root,
+  })
 );
 
-app.listen(3000, () => console.log('server on port 3000'))
-
-// http://localhost:3000/graphql
+app.listen(4000, () => console.log("Server on port 4000"));
