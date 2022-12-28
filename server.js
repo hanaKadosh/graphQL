@@ -6,7 +6,7 @@ const app = express();
 
 const schema = buildSchema(`
     type Query {
-        hello:string
+        hello:String
     }
 `)
 
