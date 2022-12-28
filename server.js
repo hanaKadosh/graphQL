@@ -9,10 +9,9 @@ let message = "this is a message";
 
 const schema = buildSchema(`
     type Post {
-        userId:Int
         id:Int
         title:String
-        body:String
+        description:String
     }
 
     type User {
@@ -74,8 +73,8 @@ const root = {
         return users;
     },
     getPostsFromExternalAPI: async () => {
-        const result = await axios.get('https://jsonplaceholder.typicode.com/posts');
-        return result.data;
+        let result = await axios.get('https://dummyjson.com/products/');
+        return result.data.products;
     },
     setMessage: ({ newMessage }) => {
         message = newMessage;
